@@ -1,6 +1,10 @@
+;;; Package --- Emacs Starup File
+;;; Commentary:
+;; Emacs Starup File
+;;; Code:
 ;; Personal Details
 (setq user-full-name "Gaurav Sood")
-(setq user-mail-address "mail.sood@gmail.com")
+(setq user-mail-address "mail.gsood@gmail.com")
 ;; Repo Init
 (require 'package)
 (add-to-list 'package-archives '("melpa-stable" . "http://stable.melpa.org/packages/"))
@@ -9,6 +13,12 @@
     (package-refresh-contents))
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
+(require 'req-package)
+(req-package el-get ;; prepare el-get (optional)
+  :force t ;; load package immediately, no dependency resolution
+  :config
+  (add-to-list 'el-get-recipe-path "~/.emacs.d/el-get/el-get/recipes")
+  (el-get 'sync))
 ;;Global Settings
 (menu-bar-mode -1)
 (tool-bar-mode -1)
@@ -55,6 +65,8 @@
   :bind (("C-;" . iedit-mode))
   :init
   (setq iedit-toggle-key-default nil))
+(use-package setup-helm
+  :load-path "custom/")
 ;; Text Completion Framework
 ;; Incremental Completion
 ;; Narrowing Selection
@@ -79,15 +91,23 @@
 	 ("RET" . newline-and-indent)))
 (global-set-key (kbd "C-c w") 'whitespace-mode)
 (windmove-default-keybindings)
+;; (require 'req-package)
+;; (req-package flycheck
+;;   :config
+;;   (progn (global-flycheck-mode)))
+(use-package flycheck
+  :config
+  (progn
+    (global-flycheck-mode)))
 ;; Python
 (require 'virtualenvwrapper)
 (venv-initialize-eshell)
 (venv-initialize-interactive-shells)
 (setq venv-location "/home/gaurav/.virtualenv/")
 (setq-default mode-line-format (cons '(:exec venv-current-name) mode-line-format))
-
 (require 'company-jedi)
 (defun my/python-mode-hook ()
+  "Python Mode Hook."
   (add-to-list 'company-backends 'company-jedi))
 (add-hook 'python-mode-hook 'my/python-mode-hook)
 (add-hook 'python-mode-hook 'py-autopep8-enable-on-save)
@@ -103,13 +123,57 @@
 	     (local-set-key (kbd "C-c ,") 'jedi:goto-definition-pop-marker)
 	     (local-set-key (kbd "C-c d") 'jedi:show-doc)
 	     (local-set-key (kbd "C-<tab>") 'jedi:complete)))
+(require 'flycheck-pycheckers)
+(with-eval-after-load 'flycheck
+  (add-hook 'flycheck-mode-hook #'flycheck-pycheckers-setup))
 (add-hook 'python-mode-hook 'jedi:setup)
 ;; Haskell
 (add-hook 'haskell-mode-hook 'intero-mode)
-;; C/C++
-(add-to-list 'load-path "~/.emacs.d/custom")
-(require 'setup-helm-gtags)
-(require 'setup-helm)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;C/C++;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package rtags
+  :config
+  (progn
+    (unless (rtags-executable-find "rc") (error "Binary rc is not installed"))
+    (unless (rtags-executable-find "rdm") (error "Binary rdm is not installed"))
+
+    (define-key c-mode-base-map (kbd "M-.") 'rtags-find-symbol-at-point)
+    (define-key c-mode-base-map (kbd "M-,") 'rtags-find-references-at-point)
+    (define-key c-mode-base-map (kbd "M?") 'rtags-display-summary)
+    (rtags-enable-standard-keybindings)
+
+    (setq rtags-use-helm t)
+    (add-hook 'kill-emacs-hook 'rtags-quit-rdm)
+    ))
+(use-package helm-rtags
+  :ensure t
+  :config
+  (progn
+    (setq rtags-display-result-backend 'helm)
+    ))
+
+(use-package company-rtags
+  :ensure t
+  :config
+  (progn
+    (setq rtags-autostart-diagnostics t)
+    (rtags-diagnostics)
+    (setq rtags-completions-enabled t)
+    (push 'company-rtags company-backends)))
+(use-package flycheck-rtags
+  :ensure t
+  :config
+  (progn
+    (defun setup-flycheck-rtags ()
+      (flycheck-select-checker 'rtags)
+      (setq-local flycheck-highlighting-mode nil)
+      (setq-local flycheck-check-syntax-automatically nil)
+      (rtags-set-periodic-reparse-timeout 2.0)
+      )
+    (add-hook 'c-mode-hook  #'setup-flycheck-rtags)
+    (add-hook 'c++-mode-hook #'setup-flycheck-rtags)
+    ))
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -117,11 +181,13 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (helm-gtags iedit anzu comment-dwim-2 undo-tree volatile-highlights zygospore use-package intero virtualenvwrapper py-autopep8 company-jedi helm-projectile company))))
+    (flycheck-pycheckers rtags req-package helm-gtags iedit anzu comment-dwim-2 undo-tree volatile-highlights zygospore use-package intero virtualenvwrapper py-autopep8 company-jedi helm-projectile company))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+
+;;; .emacs ends here
 
