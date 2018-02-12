@@ -77,9 +77,12 @@
 ;; (setq projectile-enable-caching t)
 ;; company
 (use-package company
+  :ensure t
   :init
-  (global-company-mode 1)
+  (add-hook 'after-init-hook 'global-company-mode)
+  :config
   (delete 'company-semantic company-backends))
+
 ;; Projectile
 (use-package projectile
   :init
@@ -141,6 +144,7 @@
     (define-key c-mode-base-map (kbd "M-.") 'rtags-find-symbol-at-point)
     (define-key c-mode-base-map (kbd "M-,") 'rtags-find-references-at-point)
     (define-key c-mode-base-map (kbd "M?") 'rtags-display-summary)
+    (define-key c-mode-base-map (kbd "<f5>") 'recompile)
     (rtags-enable-standard-keybindings)
 
     (setq rtags-use-helm t)
@@ -157,12 +161,12 @@
   (progn
     (add-hook 'c-mode-hook 'irony-mode)
     (add-hook 'c++-mode-hook 'irony-mode)
-    ;;(unless (irony--find-server-executable) (call-interactively #'irony-install-server))
+    (unless (irony--find-server-executable) (call-interactively #'irony-install-server))
     (setq-default irony-cdb-compilation-databases '(irony-cdb-libclang
                                                       irony-cdb-clang-complete))
     (defun my-irony-mode-hook ()
       (define-key irony-mode-map [remap completion-at-point] 'irony-completion-at-point-async)
-      (define-key irony-mode-map [remap complete-symbol] 'irony-completion-at-point-asyc))
+      (define-key irony-mode-map [remap complete-symbol] 'irony-completion-at-point-async))
     (add-hook 'irony-mode-hook 'my-irony-mode-hook)
     (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
     ))
@@ -170,8 +174,11 @@
   :ensure t
   :config
   (progn
-    (eval-after-load 'company '(add-to-list 'company-backends 'company-irony))))
+    (eval-after-load 'company '(add-to-list 'company-backends 'company-irony))
+    (eval-after-load 'company '(add-to-list 'company-backends 'company-irony-c-headers))
+    ))
 (use-package flycheck-irony
+  :ensure t
   :config
   (progn
     (eval-after-load 'flycheck '(add-hook 'flycheck-mode-hook #'flycheck-irony-setup))))
@@ -182,7 +189,7 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    (quote
-    (flycheck-pycheckers rtags req-package helm-gtags iedit anzu comment-dwim-2 undo-tree volatile-highlights zygospore use-package intero virtualenvwrapper py-autopep8 company-jedi helm-projectile company))))
+    (company-irony-c-headers flycheck-pycheckers rtags req-package helm-gtags iedit anzu comment-dwim-2 undo-tree volatile-highlights zygospore use-package intero virtualenvwrapper py-autopep8 company-jedi helm-projectile company))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
